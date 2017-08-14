@@ -1,7 +1,9 @@
 module AuthorizeNet::API
   class Transaction < ApiTransaction    
-        
-    def initialize(api_login_id, api_transaction_key, options = {})
+    attr_accessor :access_token
+	attr_accessor :options_OAuth
+	
+    def initialize(api_login_id = nil, api_transaction_key = nil, options = {})
        super
     end
        
@@ -151,13 +153,6 @@ module AuthorizeNet::API
     def create_customer_profile_from_transaction(request)
       make_request(request,CreateProfileResponse,Type::API_CREATE_CUSTOMER_PROFILE_FROM_TRANSACTION)
     end
-    
-    # This request enables you to delete a customer profile.
-    # 
-    # See spec/api_spec.rb for usage examples
-    def delete_customer_profile(request)
-      make_request(request,DeleteCustomerProfileResponse,Type::API_DELETE_CUSTOMER_PROFILE)
-    end
 
     # This request enables you to decrypt a payment data blob.
     # 
@@ -172,6 +167,92 @@ module AuthorizeNet::API
     def authenticate_test_request(request)            
       make_request(request,AuthenticateTestResponse,Type::API_AUTHENTICATE_TEST_REQUEST)
     end
+    
+    # This request enables you to get batch statistics details
+    # 
+    # See spec/api_spec.rb for usage examples
+    def get_batch_statistics(request)            
+      make_request(request,GetBatchStatisticsResponse,Type::API_GET_BATCH_STATISTICS)
+    end
 
+    # This request enables you to get batch transaction details
+    # 
+    # See spec/api_spec.rb for usage examples
+    def get_transaction_details(request)            
+      make_request(request,GetTransactionDetailsResponse,Type::API_GET_TRANSACTION_DETAILS)
+    end
+
+    # This request enables you to get batch settled transaction details
+    # 
+    # See spec/api_spec.rb for usage examples
+    def get_settled_batch_list(request)            
+      make_request(request,GetSettledBatchListResponse,Type::API_GET_SETTLED_BATCH_LIST)
+    end
+
+    # This request enables you to get batch unsettled transaction details
+    # 
+    # See spec/api_spec.rb for usage examples
+    def get_unsettled_transaction_list(request)            
+      make_request(request,GetUnsettledTransactionListResponse,Type::API_GET_UNSETTLED_TRANSACTION_LIST)
+    end
+  
+  # This request enables confirm authentication values
+    # 
+    # See spec/api_spec.rb for usage examples
+    def get_hosted_profile_page(request)            
+      make_request(request,GetHostedProfilePageResponse,Type::API_GET_HOSTED_PROFILE_PAGE)
+    end
+    
+    # This request enables you to update split tender group
+    # 
+    # See spec/api_spec.rb for usage examples
+    def update_split_tender_group(request)  
+      make_request(request,UpdateSplitTenderGroupResponse,Type::API_UPDATE_SPLIT_TENDER_GROUP)
+    end
+    
+    # This request enables you to get customer payment profile list
+    # 
+    # See spec/api_spec.rb for usage examples
+    def get_customer_payment_profile_list(request)  
+      make_request(request,GetCustomerPaymentProfileListResponse,Type::API_GET_CUSTOMER_PAYMENT_PROFILE_LIST)
+    end
+    
+    # This request enables you to get ARB Subscription
+    # 
+    # See spec/api_spec.rb for usage examples
+    def arb_get_subscription_request(request)  
+      make_request(request,ARBGetSubscriptionResponse,Type::API_ARB_GET_SUBSCRIPTION_REQUEST)
+    end
+
+    # This request enables you to get transaction list
+    #
+    # See spec/api_spec.rb for usage examples
+    def get_transaction_list(request)
+      make_request(request,GetTransactionListResponse,Type::API_GET_TRANSACTION_LIST)
+    end
+    
+    # This request enables you to validate customer payment profile
+    # 
+    # See spec/api_spec.rb for usage examples
+    def validate_customer_payment_profile(request)  
+      make_request(request,ValidateCustomerPaymentProfileResponse,Type::API_VALIDATE_CUSTOMER_PAYMENT_PROFILE)
+    end
+
+    def get_merchant_details(request)  
+      make_request(request,GetMerchantDetailsResponse,Type::API_GET_MERCHANT_DETAILS)
+    end
+
+    def get_hosted_payment_page(request)  
+      make_request(request,GetHostedPaymentPageResponse,Type::API_GET_HOSTED_PAYMENT_PAGE)
+    end
+
+    def update_held_transaction(request)  
+      make_request(request,UpdateHeldTransactionResponse,Type::API_UDPATE_HELD_TRANSACTION)
+    end
+
+    def get_transaction_list_for_customer(request)
+      make_request(request,GetTransactionListResponse,Type::API_GET_TRANSACTION_LIST_FOR_CUSTOMER)
+    end
+	
   end
 end

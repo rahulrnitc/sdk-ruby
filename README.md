@@ -1,229 +1,111 @@
 # Authorize.Net Ruby SDK
 
 [![Build Status](https://travis-ci.org/AuthorizeNet/sdk-ruby.png?branch=master)](https://travis-ci.org/AuthorizeNet/sdk-ruby)
+[![Coverage Status](https://coveralls.io/repos/AuthorizeNet/sdk-ruby/badge.svg?branch=master&service=github)](https://coveralls.io/github/AuthorizeNet/sdk-ruby?branch=master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/AuthorizeNet/sdk-ruby/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/AuthorizeNet/sdk-ruby/?branch=master)
+[![Gem Version](https://img.shields.io/gem/v/authorizenet.svg)](https://rubygems.org/gems/authorizenet)
 
-`gem install authorizenet`
 
-## Prerequisites
-
-* Ruby 1.9.3 or higher
+## Requirements
+* Ruby 2.1.0 or higher
 * RubyGem 1.3.7 or higher (to build the gem)
 * RDoc 1.0 or higher (to build documentation)
 * Rake 0.8.7 or higher (to use the rake tasks)
 * Bundle 1.6 or higher
 * RSpec 2.1 or higher (to run rspec tests)
+* An Authorize.Net account (see _Registration & Configuration_ section below)
 
-## Installation from rubygems.org
+### TLS 1.2
+The Authorize.Net APIs only support connections using the TLS 1.2 security protocol. It's important to make sure you have new enough versions of all required components to support TLS 1.2. Additionally, it's very important to keep these components up to date going forward to mitigate the risk of any security flaws that may be discovered in your system or any libraries it uses.
 
-````
+
+## Installation
+
+### Installation from rubygems.org
+```
   > sudo gem install authorizenet
-````
-##
+```
 
-# Installation from project
-
-````
+### Installation from project
+```
   > bundle install
   > rake gem
-  > sudo gem install ./authorizenet-1.8.3.gem
-````
-## Registration & Configuration
+  > sudo gem install ./authorizenet-1.9.3.gem
+```
 
-Get a sandbox account at https://developer.authorize.net/sandbox/
+
+## Registration & Configuration
+Use of this SDK and the Authorize.Net APIs requires having an account on our system. You can find these details in the Settings section.
+If you don't currently have a production Authorize.Net account and need a sandbox account for testing, you can easily sign up for one [here](https://developer.authorize.net/sandbox/).
+
+### Authentication
+To authenticate with the Authorize.Net API you will need to use your account's API Login ID and Transaction Key. If you don't have these values, you can obtain them from our Merchant Interface site. Access the Merchant Interface for production accounts at (https://account.authorize.net/) or sandbox accounts at (https://sandbox.authorize.net).
+
+Once you have your keys simply load them into the appropriate variables in your code, as per the below sample code dealing with the authentication part of the API request.
+
+#### To set your API credentials for an API request:
+```ruby
+transaction = Transaction.new('YOUR_API_LOGIN_ID', 'YOUR_TRANSACTION_KEY', :gateway => :sandbox)
+```
+
+You should never include your Login ID and Transaction Key directly in a file that's in a publically accessible portion of your website. A better practice would be to define these in a constants file, and then reference those constants in the appropriate place in your code.
+
+#### Setting OAuth credentials
+Access Tokens can be setup using the transaction instantiation without the constructor. For example, in the method above:
+```ruby
+transaction = Transaction.new
+transaction.access_token = 'testTokenValue'
+transaction.options_OAuth = {:gateway => :sandbox, :verify_ssl => true}
+```  
+
+### Switching between the sandbox environment and the production environment
+Authorize.Net maintains a complete sandbox environment for testing and development purposes. This sandbox environment is an exact duplicate of our production environment with the transaction authorization and settlement process simulated. By default, this SDK is configured to communicate with the sandbox environment. To switch to the production environment, replace the environment constant in the transaction instantiation.  For example:
+```ruby
+# For PRODUCTION use
+transaction = Transaction.new('YOUR_API_LOGIN_ID', 'YOUR_TRANSACTION_KEY', :gateway => :production)
+```
+
+API credentials are different for each environment, so be sure to switch to the appropriate credentials when switching environments.
+
+
+## SDK Usage Examples and Sample Code
+To get started using this SDK, it's highly recommended to download our sample code repository:
+* [Authorize.Net Ruby Sample Code Repository (on GitHub)](https://github.com/AuthorizeNet/sample-code-ruby)
+
+In that respository, we have comprehensive sample code for all common uses of our API:
+
+Additionally, you can find details and examples of how our API is structured in our API Reference Guide:
+* [Developer Center API Reference](http://developer.authorize.net/api/reference/index.html)
+
+The API Reference Guide provides examples of what information is needed for a particular request and how that information would be formatted. Using those examples, you can easily determine what methods would be necessary to include that information in a request using this SDK.
+
+
+## Building & Testing the SDK
+
+### Running the SDK Tests
+To run the integration tests (hitting the sandbox):
+```
+rake spec
+```
+To run the unit tests:
+```
+rake spec:ci
+```
+
+To get spec/reporting_spec.rb to pass, go to https://sandbox.authorize.net/ under Account tab->Transaction Details API and enable it.
+
 To run rspec tests, create a spec/credentials.yml with the following keys and the values obtained as described below.
-````
+```ruby
 #obtain an API login_id and transaction_id according to instructions at https://developer.authorize.net/faqs/#gettranskey
 api_login_id: {login_id_value}
 api_transaction_key: {transaction_key_value}
 #obtained md5 hash value by first setting the hash value in https://sandbox.authorize.net/ under the Account tab->MD5 Hash
 md5_value: {md5_value}
-````
-## Running the Tests
-To run the integration tests (hitting the sandbox):
-````
-rake spec
-````
-To run the unit tests:
-````
-rake spec:ci
-````
+```
 
-To get spec/reporting_spec.rb to pass, go to https://sandbox.authorize.net/ under Account tab->Transaction Details API and enable it.
-
-## Usage
-
-### Advanced Merchant Integration (AIM)
-
-````ruby
-require 'rubygems'
-  require 'authorizenet'
-
-  include AuthorizeNet::API
-
-  transaction = Transaction.new('API_LOGIN', 'API_KEY', :gateway => :sandbox)
-
-  request = CreateTransactionRequest.new
-
-  request.transactionRequest = TransactionRequestType.new()
-  request.transactionRequest.amount = 16.00
-  request.transactionRequest.payment = PaymentType.new
-  request.transactionRequest.payment.creditCard = CreditCardType.new('4242424242424242','0220','123') 
-  request.transactionRequest.transactionType = TransactionTypeEnum::AuthCaptureTransaction
-  
-  response = transaction.create_transaction(request)
-
-  if response.messages.resultCode == MessageTypeEnum::Ok
-    puts "Successful charge (auth + capture) (authorization code: #{response.transactionResponse.authCode})"
-
-  else
-    puts response.messages.messages[0].text
-    puts response.transactionResponse.errors.errors[0].errorCode
-    puts response.transactionResponse.errors.errors[0].errorText
-    raise "Failed to charge card."
-  end
-````
-
-### Direct Post Method (DPM)
-
-A generator is provided to aid in setting up a Direct Post Method application. In the example below +payments+ is the name of the controller to generate.
-````
-  > sudo gem install rails -v '>= 3.2'
-  > sudo gem install authorizenet
-  > rails new my_direct_post_app
-  > cd my_direct_post_app
-````
-  Edit Gemfile and add the line "gem 'authorizenet'"
-````
-  > rails g authorize_net:direct_post payments YOUR_API_LOGIN_ID YOUR_TRANSACTION_KEY MERCH_HASH_KEY
-  > rails server 
-````
-
-After running the generator you will probably want to customize the payment form found in <tt>app/views/payments/payment.erb</tt> and the receipt found in <tt>app/views/payments/receipt.erb</tt>.
-
-There is also a default layout generated, <tt>app/views/layouts/authorize_net.erb</tt>. If you already have your own layout, you can delete that file and the reference to it in the controller (<tt>app/controllers/payments_controller.rb</tt>).
-
-### Server Integration Method (SIM)
-
-A generator is provided to aid in setting up a Server Integration Method application. In the example below +payments+ is the name of the controller to generate.
-````
-  > sudo gem install rails -v '>= 3.2'
-  > sudo gem install authorizenet
-  > rails new my_sim_app
-  > cd my_sim_app
-````
-  Edit Gemfile and add the line "gem 'authorizenet'"
-````
-  > rails g authorize_net:sim payments YOUR_API_LOGIN_ID YOUR_TRANSACTION_KEY MERCH_HASH_KEY
-  > rails server
-````  
-After running the generator you will probably want to customize the payment page found in <tt>app/views/payments/payment.erb</tt> and the thank you page found in <tt>app/views/payments/thank_you.erb</tt>.
-
-You may also want to customize the actual payment form and receipt pages. That can be done by making the necessary changes to the AuthorizeNet::SIM::Transaction object (<tt>@sim_transaction</tt>) found in the +payment+ action in <tt>app/controllers/payments_controller.rb</tt>. The styling of those hosted pages are controlled by the AuthorizeNet::SIM::HostedReceiptPage and AuthorizeNet::SIM::HostedPaymentForm objects (which are passed to the AuthorizeNet::SIM::Transaction).
-
-There is also a default layout generated, <tt>app/views/layouts/authorize_net.erb</tt>. If you already have your own layout, you can delete that file and the reference to it in the controller (<tt>app/controllers/payments_controller.rb</tt>).
-
-### Automated Recurring Billing (ARB)
-````ruby
-  require 'rubygems'
-  require 'authorizenet'
-  
-  include AuthorizeNet::API
-  
-  transaction = Transaction.new('API_LOGIN', 'API_KEY', :gateway => :sandbox)
-  
-  request = ARBCreateSubscriptionRequest.new
-  request.refId = '2238251169'
-  request.subscription = ARBSubscriptionType.new
-  request.subscription.name = "Jane Doe"
-  request.subscription.paymentSchedule = PaymentScheduleType.new
-  request.subscription.paymentSchedule.interval = PaymentScheduleType::Interval.new("3","months")
-  request.subscription.paymentSchedule.startDate = '2017-08-30'
-  request.subscription.paymentSchedule.totalOccurrences ='12'
-  request.subscription.paymentSchedule.trialOccurrences ='1'
-  
-  request.subscription.amount = 0.09
-  request.subscription.trialAmount = 0.00
-  request.subscription.payment = PaymentType.new
-  request.subscription.payment.creditCard = CreditCardType.new('4111111111111111','0120','123')
-  
-  request.subscription.order = OrderType.new('invoiceNumber123','description123')
-  request.subscription.customer =  CustomerDataType.new(CustomerTypeEnum::Individual,'custId1','a@a.com')
-  request.subscription.billTo = NameAndAddressType.new('John','Doe','xyt','10800 Blue St','New York','NY','10010','USA')
-  request.subscription.shipTo = NameAndAddressType.new('John','Doe','xyt','10800 Blue St','New York','NY','10010','USA')
-  
-  response = transaction.create_subscription(request)
-    
+### Testing Guide
+For additional help in testing your own code, Authorize.Net maintains a [comprehensive testing guide](http://developer.authorize.net/hello_world/testing_guide/) that includes test credit card numbers to use and special triggers to generate certain responses from the sandbox environment.
 
 
-  if response != nil
-    if response.messages.resultCode == MessageTypeEnum::Ok
-      puts "Successfully created a subscription #{response.subscriptionId}"
-  
-    else
-      puts response.messages.messages[0].code
-      puts response.messages.messages[0].text
-      raise "Failed to create a subscription"
-    end
-  end
-````
-### Card Present (CP)
-````ruby
-  require 'rubygems'
-  require 'authorizenet'
-
-  transaction = AuthorizeNet::AIM::Transaction.new('API_LOGIN', 'API_KEY', :gateway => :card_present_sandbox)
-  credit_card = AuthorizeNet::CreditCard.new(nil, nil, :track_1 => '%B4111111111111111^DOE/JOHN^1803101000000000020000831000000?')
-  response = transaction.purchase('10.00', credit_card)
-
-  if response.success?
-    puts "Successfully made a purchase (authorization code: #{response.authorization_code})"
-  else
-    raise "Failed to make purchase."
-  end
-````
-## Credit Card Test Numbers
-
-For your reference, you can use the following test credit card numbers.
-The expiration date must be set to the present date or later. Use 123 for
-the CCV code.
-
-* American Express:  370000000000002
-* Discover:  6011000000000012
-* Visa:  4007000000027
-* JCB: 3088000000000017
-* Diners Club/ Carte Blanche:  38000000000006
-* Visa (Card Present Track 1): %B4111111111111111^DOE/JOHN^1803101000000000020000831000000?
-
-## New Model
-
-We’re exploring a new model of maintaining the SDKs which allows us to be more responsive to API changes.  This model is consistent across the different SDK languages, which is great for us, however we do not want to sacrifice your productivity by losing the inherent efficiencies in the Ruby language.  To this end we’re introducing the new model as purely “experimental” at this time and we would appreciate your feedback.  Let us know what you really think!  Here’s an example of a server side call with ApplePay data in the new model.
-
-### Apple Pay Example
-````ruby
-  require 'rubygems'
-  require 'authorizenet'
-
-  include AuthorizeNet::API
-
-  transaction = Transaction.new('5KP3u95bQpv', '4Ktq966gC55GAX7S', :gateway => :sandbox)
-  request = CreateTransactionRequest.new
-  request.transactionRequest = TransactionRequestType.new
-  request.transactionRequest.amount = 39.55
-
-  request.transactionRequest.payment = PaymentType.new
-  request.transactionRequest.payment.opaqueData = OpaqueDataType.new('COMMON.APPLE.INAPP.PAYMENT','eyJkYXRhIjoiQkRQTldTdE1tR2V3UVVXR2c0bzdFXC9qKzFjcTFUNzhxeVU4NGI2N2l0amNZSTh3UFlBT2hzaGpoWlBycWRVcjRYd1BNYmo0emNHTWR5KysxSDJWa1BPWStCT01GMjV1YjE5Y1g0bkN2a1hVVU9UakRsbEIxVGdTcjhKSFp4Z3A5ckNnc1NVZ2JCZ0tmNjBYS3V0WGY2YWpcL284WkliS25yS1E4U2gwb3VMQUtsb1VNbit2UHU0K0E3V0tycXJhdXo5SnZPUXA2dmhJcStIS2pVY1VOQ0lUUHlGaG1PRXRxK0grdzB2UmExQ0U2V2hGQk5uQ0hxenpXS2NrQlwvMG5xTFpSVFliRjBwK3Z5QmlWYVdIZWdoRVJmSHhSdGJ6cGVjelJQUHVGc2ZwSFZzNDhvUExDXC9rXC8xTU5kNDdrelwvcEhEY1JcL0R5NmFVTStsTmZvaWx5XC9RSk4rdFMzbTBIZk90SVNBUHFPbVhlbXZyNnhKQ2pDWmxDdXcwQzltWHpcL29iSHBvZnVJRVM4cjljcUdHc1VBUERwdzdnNjQybTRQendLRitIQnVZVW5lV0RCTlNEMnU2amJBRzMiLCJ2ZXJzaW9uIjoiRUNfdjEiLCJoZWFkZXIiOnsiYXBwbGljYXRpb25EYXRhIjoiOTRlZTA1OTMzNWU1ODdlNTAxY2M0YmY5MDYxM2UwODE0ZjAwYTdiMDhiYzdjNjQ4ZmQ4NjVhMmFmNmEyMmNjMiIsInRyYW5zYWN0aW9uSWQiOiJjMWNhZjVhZTcyZjAwMzlhODJiYWQ5MmI4MjgzNjM3MzRmODViZjJmOWNhZGYxOTNkMWJhZDlkZGNiNjBhNzk1IiwiZXBoZW1lcmFsUHVibGljS2V5IjoiTUlJQlN6Q0NBUU1HQnlxR1NNNDlBZ0V3Z2ZjQ0FRRXdMQVlIS29aSXpqMEJBUUloQVBcL1wvXC9cLzhBQUFBQkFBQUFBQUFBQUFBQUFBQUFcL1wvXC9cL1wvXC9cL1wvXC9cL1wvXC9cL1wvXC9cL01Gc0VJUFwvXC9cL1wvOEFBQUFCQUFBQUFBQUFBQUFBQUFBQVwvXC9cL1wvXC9cL1wvXC9cL1wvXC9cL1wvXC9cLzhCQ0JheGpYWXFqcVQ1N1BydlZWMm1JYThaUjBHc014VHNQWTd6ancrSjlKZ1N3TVZBTVNkTmdpRzV3U1RhbVo0NFJPZEpyZUJuMzZRQkVFRWF4ZlI4dUVzUWtmNHZPYmxZNlJBOG5jRGZZRXQ2ek9nOUtFNVJkaVl3cFpQNDBMaVwvaHBcL200N242MHA4RDU0V0s4NHpWMnN4WHM3THRrQm9ONzlSOVFJaEFQXC9cL1wvXC84QUFBQUFcL1wvXC9cL1wvXC9cL1wvXC9cLys4NXZxdHB4ZWVoUE81eXNMOFl5VlJBZ0VCQTBJQUJHbStnc2wwUFpGVFwva0RkVVNreHd5Zm84SnB3VFFRekJtOWxKSm5tVGw0REdVdkFENEdzZUdqXC9wc2hCWjBLM1RldXFEdFwvdERMYkUrOFwvbTB5Q21veHc9IiwicHVibGljS2V5SGFzaCI6IlwvYmI5Q05DMzZ1QmhlSEZQYm1vaEI3T28xT3NYMkora0pxdjQ4ek9WVmlRPSJ9LCJzaWduYXR1cmUiOiJNSUlEUWdZSktvWklodmNOQVFjQ29JSURNekNDQXk4Q0FRRXhDekFKQmdVckRnTUNHZ1VBTUFzR0NTcUdTSWIzRFFFSEFhQ0NBaXN3Z2dJbk1JSUJsS0FEQWdFQ0FoQmNsK1BmMytVNHBrMTNuVkQ5bndRUU1Ba0dCU3NPQXdJZEJRQXdKekVsTUNNR0ExVUVBeDRjQUdNQWFBQnRBR0VBYVFCQUFIWUFhUUJ6QUdFQUxnQmpBRzhBYlRBZUZ3MHhOREF4TURFd05qQXdNREJhRncweU5EQXhNREV3TmpBd01EQmFNQ2N4SlRBakJnTlZCQU1lSEFCakFHZ0FiUUJoQUdrQVFBQjJBR2tBY3dCaEFDNEFZd0J2QUcwd2daOHdEUVlKS29aSWh2Y05BUUVCQlFBRGdZMEFNSUdKQW9HQkFOQzgra2d0Z212V0YxT3pqZ0ROcmpURUJSdW9cLzVNS3ZsTTE0NnBBZjdHeDQxYmxFOXc0ZklYSkFEN0ZmTzdRS2pJWFlOdDM5ckx5eTd4RHdiXC81SWtaTTYwVFoyaUkxcGo1NVVjOGZkNGZ6T3BrM2Z0WmFRR1hOTFlwdEcxZDlWN0lTODJPdXA5TU1vMUJQVnJYVFBITmNzTTk5RVBVblBxZGJlR2M4N20wckFnTUJBQUdqWERCYU1GZ0dBMVVkQVFSUk1FK0FFSFpXUHJXdEpkN1laNDMxaENnN1lGU2hLVEFuTVNVd0l3WURWUVFESGh3QVl3Qm9BRzBBWVFCcEFFQUFkZ0JwQUhNQVlRQXVBR01BYndCdGdoQmNsK1BmMytVNHBrMTNuVkQ5bndRUU1Ba0dCU3NPQXdJZEJRQURnWUVBYlVLWUNrdUlLUzlRUTJtRmNNWVJFSW0ybCtYZzhcL0pYditHQlZRSmtPS29zY1k0aU5ERkFcL2JRbG9nZjlMTFU4NFRId05SbnN2VjNQcnY3UlRZODFncTBkdEM4elljQWFBa0NISUkzeXFNbko0QU91NkVPVzlrSmsyMzJnU0U3V2xDdEhiZkxTS2Z1U2dRWDhLWFFZdVpMazJScjYzTjhBcFhzWHdCTDNjSjB4Z2VBd2dkMENBUUV3T3pBbk1TVXdJd1lEVlFRREhod0FZd0JvQUcwQVlRQnBBRUFBZGdCcEFITUFZUUF1QUdNQWJ3QnRBaEJjbCtQZjMrVTRwazEzblZEOW53UVFNQWtHQlNzT0F3SWFCUUF3RFFZSktvWklodmNOQVFFQkJRQUVnWUJhSzNFbE9zdGJIOFdvb3NlREFCZitKZ1wvMTI5SmNJYXdtN2M2VnhuN1phc05iQXEzdEF0OFB0eSt1UUNnc3NYcVprTEE3a3oyR3pNb2xOdHY5d1ltdTlVandhcjFQSFlTK0JcL29Hbm96NTkxd2phZ1hXUnowbk1vNXkzTzFLelgwZDhDUkhBVmE4OFNyVjFhNUpJaVJldjNvU3RJcXd2NXh1WmxkYWc2VHI4dz09In0=') 
-
-  request.transactionRequest.transactionType = TransactionTypeEnum::AuthCaptureTransaction
-
-  response = transaction.create_transaction(request)
-
-  if response.messages.resultCode == MessageTypeEnum::Ok
-    puts "Successfully made a purchase (authorization code: #{response.transactionResponse.authCode})"
-  else
-    raise "Failed to make purchase."
-  end
-````
-
-### Visa Checkout Example
-Our code samples repository has sample code for sending a transaction with Visa Checkout payment data (https://github.com/AuthorizeNet/sample-code-ruby/blob/master/VisaCheckout/visacheckout-transaction.rb) and for decrypting Visa Checkout payment data (https://github.com/AuthorizeNet/sample-code-ruby/blob/master/VisaCheckout/visacheckout-decrypt.rb).
-
+## License
+This repository is distributed under a proprietary license. See the provided [`LICENSE.txt`](/LICENSE.txt) file.
